@@ -75,12 +75,10 @@
     ws.onmessage = (event) => {
       const response = JSON.parse(event.data);
       console.log('Received:', response);
-      // For demo purposes, mock response if no real data
       if (response.result && response.result.lines) {
         displayTrustLines(response.result.lines);
       } else {
-        // Mock data if real response missing or for testing
-        displayTrustLines(mockTrustLines());
+        document.getElementById('trustLines').innerHTML = '<em>No trust lines data received.</em>';
       }
     };
   }
@@ -91,7 +89,7 @@
 
     // Show first 50 trust lines
     const limitedLines = lines.slice(0, 50);
-    limitedLines.forEach((line, index) => {
+    limitedLines.forEach((line) => {
       const div = document.createElement('div');
       div.className = 'trust-line';
       div.innerHTML = `
@@ -100,15 +98,6 @@
       `;
       container.appendChild(div);
     });
-  }
-
-  // Mock data function (replace with real data handling)
-  function mockTrustLines() {
-    const lines = [];
-    for (let i = 1; i <= 200; i++) {
-      lines.push({ account: `rIssuer${i}`, balance: `${(i * 10).toFixed(2)} XRP` });
-    }
-    return lines;
   }
 </script>
 
