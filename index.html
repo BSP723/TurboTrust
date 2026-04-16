@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XRPL Command Interface</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  #commandInput { width: 80%; padding: 8px; }
+  #executeBtn { padding: 8px 16px; }
+  #results { margin-top: 20px; max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+  .trust-line { margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<h2>XRPL Command Interface</h2>
+<input type="text" id="commandInput" placeholder="#Syntax: account_lines &lt;account&gt; [&lt;peer&gt;] [&lt;ledger_index&gt;|&lt;ledger_hash&gt;]" />
+<button id="executeBtn">Execute</button>
+
+<div id="results">
+  <h3>Trust Lines (First 50)</h3>
+  <div id="trustLines"></div>
+</div>
+
+<script>
+  const wsUrl = "wss://s1.ripple.com"; // Ripple's mainnet WebSocket server
+  let ws;
+
+  document.getElementById('executeBtn').addEventListener('click', () => {
+    const command = document.getElementById('commandInput').value.trim();
+    if (command.startsWith('account_lines')) {
+      handleAccountLinesCommand(command);
+    } else {
+      alert('Unsupported command');
+    }
+  });
+
+  function connectWebSocket() {
+    return new Promise((resolve, reject) => {
+      ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        resolve();
+      };
+      ws.onerror = (err) => {
+        console.error('WebSocket error', err);
+        reject(err);
+      };
+    });
+  }
+
+  async function handleAccountLinesCommand(cmd) {
+    // Parse command: account_lines <account>
+    const parts = cmd.split(' ');
+    if (parts.length < 2) {
+      alert('Invalid command syntax.');
+      return;
+    }
+    const account = parts[1];
+
+    await connectWebSocket();
+
+    // Prepare WebSocket JSON object
+    const request = {
+      id: "example_account_lines",
+      command: "account_lines",
+      account: account,
+      api_version: 2
+    };
+
+    // Send request via WebSocket
+    ws.send(JSON.stringify(request));
+
+    ws.onmessage = (event) => {
+      const response = JSON.parse(event.data);
+      console.log('Received:', response);
+      // For demo purposes, mock response if no real data
+      if (response.result && response.result.lines) {
+        displayTrustLines(response.result.lines);
+      } else {
+        // Mock data if real response missing or for testing
+        displayTrustLines(mockTrustLines());
+      }
+    };
+  }
+
+  function displayTrustLines(lines) {
+    const container = document.getElementById('trustLines');
+    container.innerHTML = '';
+
+    // Show first 50 trust lines
+    const limitedLines = lines.slice(0, 50);
+    limitedLines.forEach((line, index) => {
+      const div = document.createElement('div');
+      div.className = 'trust-line';
+      div.innerHTML = `
+        <strong>Issuer:</strong> ${line.account} <br/>
+        <strong>Balance:</strong> ${line.balance}
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  // Mock data function (replace with real data handling)
+  function mockTrustLines() {
+    const lines = [];
+    for (let i = 1; i <= 200; i++) {
+      lines.push({ account: `rIssuer${i}`, balance: `${(i * 10).toFixed(2)} XRP` });
+    }
+    return lines;
+  }
+</script>
+
+</body>
+</html>
